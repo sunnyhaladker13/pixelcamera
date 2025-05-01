@@ -10,6 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let streamStarted = false;
     let currentFacingMode = 'environment'; // Start with back camera
     let currentStream = null;
+    
+    // Performance optimization variables
+    let frameSkip = 0;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    let processingScale = isMobile ? 0.5 : 1; // Scale down processing for mobile
+    let lastFrameTime = 0;
+    const targetFPS = isMobile ? 15 : 30; // Lower FPS for mobile
+    const frameInterval = 1000 / targetFPS;
 
     // Update pixel size value display
     pixelSizeSlider.addEventListener('input', () => {
@@ -39,8 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const constraints = {
                 video: {
                     facingMode: currentFacingMode,
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
+                    width: { ideal: isMobile ? 640 : 1280 },
+                    height: { ideal: isMobile ? 480 : 720 }
                 },
                 audio: false
             };
@@ -66,18 +74,35 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyPixelEffect() {
         if (!streamStarted) return;
 
-        // Draw the current video frame to the canvas
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Skip frames for performance optimization based on device capability
+        if (frameSkip > 0) {
+            frameSkip--;
+            return;
+        }
+        frameSkip = isMobile ? 2 : 0; // Skip more frames on mobile
+        
+        // Check if enough time has passed since the last frame
+        const now = performance.now();
+        const elapsed = now - lastFrameTime;
+        if (elapsed < frameInterval) return;
+        lastFrameTime = now;
+        
+        // Create a scaled canvas for processing
+        const processWidth = canvas.width * processingScale;
+        const processHeight = canvas.height * processingScale;
+        
+        // Draw the current video frame to the canvas at reduced size for processing
+        ctx.drawImage(video, 0, 0, processWidth, processHeight);
         
         // Get the image data from the canvas
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, processWidth, processHeight);
         const data = imageData.data;
         
         // Create a temporary canvas to work with
         const tempCanvas = document.createElement('canvas');
         const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = canvas.width;
-        tempCanvas.height = canvas.height;
+        tempCanvas.width = processWidth;
+        tempCanvas.height = processHeight;
         
         // Put the original image on the temporary canvas
         tempCtx.putImageData(imageData, 0, 0);
@@ -85,27 +110,57 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clear the main canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Draw pixelated version with gradients
-        for (let y = 0; y < canvas.height; y += pixelSize) {
-            for (let x = 0; x < canvas.width; x += pixelSize) {
+        // Adjust pixelSize based on processing scale
+        const scaledPixelSize = Math.max(1, Math.floor(pixelSize * processingScale));
+        
+        // Draw pixelated version with simplified gradient (optimized)
+        for (let y = 0; y < processHeight; y += scaledPixelSize) {
+            for (let x = 0; x < processWidth; x += scaledPixelSize) {
                 // Calculate the size of this pixel (handle edge cases)
-                const pWidth = Math.min(pixelSize, canvas.width - x);
-                const pHeight = Math.min(pixelSize, canvas.height - y);
+                const pWidth = Math.min(scaledPixelSize, processWidth - x);
+                const pHeight = Math.min(scaledPixelSize, processHeight - y);
                 
                 // Get the color of a single pixel in the area
                 const pixelData = tempCtx.getImageData(x, y, 1, 1).data;
                 
-                // Create a gradient for this pixel
-                const gradient = createPixelGradient(x, y, pWidth, pHeight, pixelData);
-                
-                // Fill the pixel area with the gradient
-                ctx.fillStyle = gradient;
-                ctx.fillRect(x, y, pWidth, pHeight);
-                
-                // Add a subtle border to each pixel for a more defined look
-                ctx.strokeStyle = `rgba(${pixelData[0]}, ${pixelData[1]}, ${pixelData[2]}, 0.5)`;
-                ctx.lineWidth = 1;
-                ctx.strokeRect(x, y, pWidth, pHeight);
+                // Use simpler rendering for better performance
+                if (isMobile) {
+                    // Simple solid color for mobile (much faster)
+                    ctx.fillStyle = `rgb(${pixelData[0]}, ${pixelData[1]}, ${pixelData[2]})`;
+                    ctx.fillRect(
+                        x / processingScale, 
+                        y / processingScale, 
+                        pWidth / processingScale, 
+                        pHeight / processingScale
+                    );
+                } else {
+                    // Use gradient only on desktop
+                    const gradient = createPixelGradient(
+                        x / processingScale, 
+                        y / processingScale, 
+                        pWidth / processingScale, 
+                        pHeight / processingScale, 
+                        pixelData
+                    );
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(
+                        x / processingScale, 
+                        y / processingScale, 
+                        pWidth / processingScale, 
+                        pHeight / processingScale
+                    );
+                    
+                    // Only add stroke on desktop for better performance
+                    ctx.strokeStyle = `rgba(${pixelData[0]}, ${pixelData[1]}, ${pixelData[2]}, 0.5)`;
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(
+                        x / processingScale, 
+                        y / processingScale, 
+                        pWidth / processingScale, 
+                        pHeight / processingScale
+                    );
+                }
             }
         }
     }

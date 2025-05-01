@@ -11,6 +11,7 @@ A web-based camera application that allows you to take photos with various pixel
 - Mobile responsive design
 - Front camera support for selfies on mobile devices
 - Works in modern browsers
+- Performance-optimized for mobile devices
 
 ## 🚀 How to Use
 
