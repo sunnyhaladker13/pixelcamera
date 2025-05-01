@@ -2,8 +2,7 @@
 
 A web-based camera application that allows you to take photos with various pixel art effects. Transform your photos into retro-style pixel art with adjustable resolution.
 
-![Pixel Camera Screenshot](screenshot.png)
-
+![Smiling pixelated image](image.png)
 ## ✨ Features
 
 - Live camera feed with real-time pixel art effects
