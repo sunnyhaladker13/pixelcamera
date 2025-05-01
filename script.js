@@ -4,14 +4,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = canvas.getContext('2d');
     const pixelSizeSlider = document.getElementById('pixel-size');
     const pixelSizeValue = document.getElementById('pixel-size-value');
+    const cameraToggleBtn = document.getElementById('camera-toggle');
     
     let pixelSize = parseInt(pixelSizeSlider.value);
     let streamStarted = false;
+    let currentFacingMode = 'environment'; // Start with back camera
+    let currentStream = null;
 
     // Update pixel size value display
     pixelSizeSlider.addEventListener('input', () => {
         pixelSize = parseInt(pixelSizeSlider.value);
         pixelSizeValue.textContent = `${pixelSize}px`;
+    });
+    
+    // Add event listener for camera toggle button
+    cameraToggleBtn.addEventListener('click', () => {
+        // Toggle between front and back camera
+        currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+        
+        // Stop the current stream before switching cameras
+        if (currentStream) {
+            currentStream.getTracks().forEach(track => {
+                track.stop();
+            });
+        }
+        
+        // Restart the camera with the new facing mode
+        startCamera();
     });
 
     // Function to start the camera
@@ -19,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const constraints = {
                 video: {
-                    facingMode: 'environment', // Use the back camera on mobile by default
+                    facingMode: currentFacingMode,
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
                 },
@@ -27,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            currentStream = stream;
             
             video.srcObject = stream;
             

@@ -9,14 +9,16 @@ A web-based camera application that allows you to take photos with various pixel
 - Adjustable pixel resolution
 - Screenshot capture functionality
 - Mobile responsive design
+- Front camera support for selfies on mobile devices
 - Works in modern browsers
 
 ## 🚀 How to Use
 
 1. Allow camera access when prompted
-2. Adjust the pixel resolution slider to your preference
-3. Click the capture button to take a screenshot
-4. Download or share your pixelated image
+2. On mobile devices, use the camera switch button to toggle between front and back cameras
+3. Adjust the pixel resolution slider to your preference
+4. Click the capture button to take a screenshot
+5. Download or share your pixelated image
 
 ## 🛠️ Technologies Used
 
@@ -24,7 +26,7 @@ A web-based camera application that allows you to take photos with various pixel
 - CSS3
 - JavaScript
 - HTML5 Canvas API
-- MediaDevices API
+- MediaDevices API (with facingMode support for camera selection)
 
 ## 📋 Installation
 
